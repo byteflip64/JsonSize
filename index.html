@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Json Size Inspector</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="card">
+        <h1 class="header-title">GitHub & JSON Inspector</h1>
+        <p class="subtitle">Inspect structure, compress files, append parts, and push clean JSON updates.</p>
+
+        <!-- TAB NAVIGATION -->
+        <div class="tab-container">
+            <button class="tab-btn active" id="tab1-btn" onclick="switchTab(event, 'opt1')">Any URL</button>
+            <button class="tab-btn" id="tab2-btn" onclick="switchTab(event, 'opt2')">Fetch All Courses</button>
+            <button class="tab-btn" id="tab3-btn" onclick="switchTab(event, 'opt3')">JSON Editor & Append</button>
+        </div>
+
+        <!-- SECTION 1: Any URL -->
+        <div id="opt1" class="option-section active">
+            <form id="singleForm">
+                <label for="urlInput">JSON URL (GitHub, API, CDN, etc.)</label>
+                <div class="input-group">
+                    <input type="url" id="urlInput" placeholder="https://github.com/user/repo/blob/main/data.json"
+                        required />
+                    <button type="submit" id="btnSingle" class="btn">Check Size</button>
+                </div>
+            </form>
+
+            <div id="singleResult" class="single-result">
+                <div class="result-row">
+                    <span>Original Raw Size:</span>
+                    <span class="result-val" id="resSize">-</span>
+                </div>
+                <div class="result-row">
+                    <span>Compressed Size:</span>
+                    <span class="result-val" id="resCompSize">-</span>
+                </div>
+                <div class="result-row">
+                    <span>JSON Status:</span>
+                    <span class="result-val" id="resStatus">-</span>
+                </div>
+                <div class="result-row">
+                    <span>Parts / Structure Count:</span>
+                    <span id="resPartsContainer">-</span>
+                </div>
+                <div class="result-row">
+                    <span>Actions:</span>
+                    <div class="btn-group">
+                        <button id="btnCompSingle" class="btn-sm btn-sm-purple" onclick="compressAndCopySingle()">⚡
+                            Compress</button>
+                        <button id="btnCopySingle" class="btn-sm" onclick="copySingleJson()">📋 Copy</button>
+                        <button class="icon-btn" title="Modify in Editor" onclick="sendToEditor('single')">✏️</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: Fetch All Courses -->
+        <div id="opt2" class="option-section">
+            <div class="auth-box">
+                <label for="usernameInput">GitHub Username</label>
+                <input type="text" id="usernameInput" placeholder="Enter your GitHub username (e.g. nightmoon)" />
+
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="saveOption" value="local" checked />
+                        Save locally (persistent)
+                    </label>
+                    <label>
+                        <input type="radio" name="saveOption" value="temp" />
+                        Temporary (session only)
+                    </label>
+                </div>
+            </div>
+
+            <button id="btnBatch" class="btn btn-full" onclick="fetchAllCourses()">Fetch All Courses & Calculate
+                Total</button>
+
+            <div id="totalBox" class="total-box">
+                <div class="total-box-title">Combined Total Size</div>
+                <div class="total-box-value" id="totalSizeVal">0 KB</div>
+                <div style="font-size: 0.8rem; margin-top: 4px;" id="totalCountVal">0 course files evaluated</div>
+            </div>
+
+            <!-- Search & Sort Bar -->
+            <div id="controlsBar" class="controls-bar">
+                <input type="text" id="searchInput" placeholder="🔍 Search course file name..."
+                    oninput="renderTable()" />
+                <select id="sortSelect" onchange="renderTable()" style="max-width: 180px;">
+                    <option value="name">Sort by Name</option>
+                    <option value="size-desc">Size: High to Low</option>
+                    <option value="size-asc">Size: Low to High</option>
+                    <option value="parts-desc">Parts: High to Low</option>
+                    <option value="parts-asc">Parts: Low to High</option>
+                </select>
+            </div>
+
+            <div id="batchContainer" class="batch-container">
+                <table class="batch-table">
+                    <thead>
+                        <tr>
+                            <th>File Name</th>
+                            <th>Parts</th>
+                            <th>Raw Size</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="batchTbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SECTION 3: JSON Editor & Append -->
+        <div id="opt3" class="option-section">
+            <div class="toolbar">
+                <label style="margin-bottom: 0;">Interactive JSON Editor</label>
+                <div class="btn-group">
+                    <button class="btn-sm btn-sm-purple" onclick="openAppendModal()">➕ Append Part</button>
+                    <button class="btn-sm" onclick="prettifyEditorJson()">✨ Format JSON</button>
+                </div>
+            </div>
+
+            <div class="editor-container">
+                <div class="line-numbers" id="editorLineNumbers"><span>1</span></div>
+                <div class="editor-wrapper">
+                    <textarea class="editor-textarea" id="editorTextarea" placeholder='{\n  "parts": []\n}'
+                        oninput="onEditorInput()" onscroll="syncEditorScroll()"></textarea>
+                </div>
+            </div>
+
+            <div class="btn-group" style="margin-bottom: 16px;">
+                <button id="btnCompEditor" class="btn btn-purple" style="flex: 1;" onclick="compressAndCopyEditor()">⚡
+                    Compress</button>
+                <button id="btnCopyEditor" class="btn" style="flex: 1; background-color: #0969da;"
+                    onclick="copyEditorRaw()">📋 Copy</button>
+            </div>
+
+            <div id="pasteResult" class="single-result">
+                <div class="result-row">
+                    <span>Raw Size:</span>
+                    <span class="result-val" id="pasteSize">-</span>
+                </div>
+                <div class="result-row">
+                    <span>Compressed Size:</span>
+                    <span class="result-val" id="pasteCompSize">-</span>
+                </div>
+                <div class="result-row">
+                    <span>JSON Status:</span>
+                    <span class="result-val" id="pasteStatus">-</span>
+                </div>
+                <div class="result-row">
+                    <span>Parts / Structure Count:</span>
+                    <span id="pastePartsContainer">-</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="errorMsg" class="error"></div>
+    </div>
+
+    <!-- Parts Table Popup Modal -->
+    <div id="partsModal" class="modal-overlay" onclick="closeModal(event, 'partsModal')">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Course Parts</h3>
+                <button class="modal-close" onclick="closeModalDirect('partsModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <table class="parts-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Part Title</th>
+                            <th>Badge</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Append Parts Input Modal -->
+    <div id="appendModal" class="modal-overlay" onclick="closeModal(event, 'appendModal')">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Append Part(s) Content</h3>
+                <button class="modal-close" onclick="closeModalDirect('appendModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.83rem; color: #57606a; margin-bottom: 10px;">
+                    Paste one or multiple object(s) below. They will be appended to the end of the existing
+                    <code>parts</code> array.
+                </p>
+                <textarea id="appendPartsInput" class="modal-textarea"
+                    placeholder='{\n  "partTitle": "New Lesson Title",\n  "badge": "New"\n}'></textarea>
+                <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                    <button class="btn-sm" onclick="closeModalDirect('appendModal')">Cancel</button>
+                    <button class="btn btn-purple" onclick="executeAppendParts()">Append to End</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./script.js"> </script>
+</body>
+
+</html>
